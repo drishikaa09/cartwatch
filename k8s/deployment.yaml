@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cartwatch-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cartwatch-api
+  template:
+    metadata:
+      labels:
+        app: cartwatch-api
+    spec:
+      containers:
+      - name: cartwatch-api
+        image: cartwatch-api:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cartwatch-api
+spec:
+  selector:
+    app: cartwatch-api
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8000
+  type: ClusterIP
