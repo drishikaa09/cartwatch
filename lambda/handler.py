@@ -51,4 +51,4 @@ def send_alert(cart_event):
         Subject="CartWatch Alert — Abandoned Cart",
         Message=message
     )
-    print(f"Alert sent for {cart_event['user_id']}")
+    print(f"Alert sent for {cart_event['user_id']}")# CartWatch Lambda
