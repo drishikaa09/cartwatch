@@ -1,33 +1,41 @@
-# CartWatch 
-Real-time cart abandonment detection on AWS — when a user drops off, an alert hits your inbox in seconds.
+# CartWatch 🛒
 
-## How it works
-```
-Python Simulator → Kinesis → Lambda → SNS (email alert)
-                                    → S3 (event log)
-```
-Built with: **AWS Kinesis · Lambda · SNS · S3 · Terraform · Kubernetes · GitHub Actions**
+![GitHub Actions](https://github.com/drishikaa09/cartwatch/actions/workflows/deploy.yml/badge.svg)
+![AWS](https://img.shields.io/badge/AWS-Kinesis%20%7C%20Lambda%20%7C%20RDS%20%7C%20SNS-orange)
+![Terraform](https://img.shields.io/badge/IaC-Terraform-purple)
+![Kubernetes](https://img.shields.io/badge/Orchestration-Kubernetes-blue)
 
-## What's interesting
+> Event-driven cart abandonment detection — from user drop-off to email alert in under a second.
 
-- All AWS infrastructure provisioned with **Terraform** (one `terraform apply` to spin up everything)
-- Lambda auto-deployed via **GitHub Actions** on every push to `lambda/`
-- Status API containerized and running on a local **Kubernetes** cluster (kind)
-- Zero manual AWS console clicks after initial setup
+## Architecture
+Simulator → Kinesis → Lambda → SNS (instant alert)
 
-## Run it
+→ S3  (raw backup)
+
+→ RDS (queryable events)
+Kubernetes → FastAPI → RDS → Live analytics dashboard
+
+## Stack
+
+| Layer | Tech |
+|---|---|
+| Streaming | AWS Kinesis |
+| Processing | AWS Lambda (Python) |
+| Alerting | AWS SNS |
+| Storage | AWS S3 + PostgreSQL RDS |
+| Infrastructure | Terraform |
+| Orchestration | Kubernetes (kind) |
+| CI/CD | GitHub Actions |
+
+## Quickstart
 
 ```bash
-# 1. Provision infrastructure
-cd terraform && terraform init && terraform apply
-
-# 2. Stream events
-python3 simulator/simulate_events.py
-
-# 3. Watch your inbox for abandonment alerts
+cd terraform && terraform apply        # spin up all AWS infra
+python3 simulator/simulate_events.py   # start streaming events
+kubectl port-forward svc/cartwatch-api 8080:80  # start dashboard
 ```
 
-## Cleanup
+## Teardown
 ```bash
 cd terraform && terraform destroy
 ```
