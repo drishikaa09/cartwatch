@@ -103,3 +103,99 @@ resource "aws_lambda_event_source_mapping" "kinesis_trigger" {
   starting_position = "LATEST"
   batch_size        = 10
 }
+# --- VPC for RDS ---
+resource "aws_vpc" "cartwatch" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+  tags = { Project = "cartwatch" }
+}
+
+resource "aws_subnet" "cartwatch_a" {
+  vpc_id            = aws_vpc.cartwatch.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "eu-north-1a"
+  tags = { Project = "cartwatch" }
+}
+
+resource "aws_subnet" "cartwatch_b" {
+  vpc_id            = aws_vpc.cartwatch.id
+  cidr_block        = "10.0.2.0/24"
+  availability_zone = "eu-north-1b"
+  tags = { Project = "cartwatch" }
+}
+
+# --- Route Table ---
+resource "aws_route_table" "cartwatch" {
+  vpc_id = aws_vpc.cartwatch.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.cartwatch.id
+  }
+
+  depends_on = [aws_internet_gateway.cartwatch]
+
+  tags = { Project = "cartwatch" }
+}
+# --- Security Group for RDS ---
+resource "aws_security_group" "rds" {
+  name   = "cartwatch-rds-sg"
+  vpc_id = aws_vpc.cartwatch.id
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = { Project = "cartwatch" }
+}
+
+# --- Internet Gateway ---
+resource "aws_internet_gateway" "cartwatch" {
+  vpc_id = aws_vpc.cartwatch.id
+  tags = { Project = "cartwatch" }
+}
+
+# --- RDS Subnet Group ---
+resource "aws_db_subnet_group" "cartwatch" {
+  name       = "cartwatch-subnet-group"
+  subnet_ids = [aws_subnet.cartwatch_a.id, aws_subnet.cartwatch_b.id]
+  tags = { Project = "cartwatch" }
+}
+
+# --- RDS PostgreSQL ---
+resource "aws_db_instance" "cartwatch" {
+  identifier        = "cartwatch-db"
+  engine            = "postgres"
+  engine_version    = "16.9"
+  instance_class    = "db.t3.micro"
+  allocated_storage = 20
+
+  db_name  = "cartwatch"
+  username = "cartwatch_user"
+  password = "cartwatch_pass_2024"
+
+  db_subnet_group_name   = aws_db_subnet_group.cartwatch.name
+  vpc_security_group_ids = [aws_security_group.rds.id]
+
+  publicly_accessible = true
+  skip_final_snapshot = true
+
+  depends_on = [aws_internet_gateway.cartwatch]
+
+  tags = { Project = "cartwatch" }
+}
+# --- Output RDS Endpoint ---
+output "rds_endpoint" {
+  value = aws_db_instance.cartwatch.endpoint
+}
